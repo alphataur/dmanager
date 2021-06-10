@@ -13,12 +13,17 @@ class dmanagerCollections{
   }
   getDownloadEntryModel(){
     let downloadEntrySchema = new mongoose.Schema({
-      hash: String,
+      hash: {
+        index: true,
+        unique: true,
+        type: String
+      },
       uris: [String],
       fpaths: [String],
       offsets: [Number],
       lengths: [Number],
       speeds: [Number],
+      completed: [Boolean]
     })
     return (new mongoose.model(this.collection, downloadEntrySchema))
   }
