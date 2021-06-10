@@ -1,0 +1,26 @@
+{
+  "name": "dmanager",
+  "version": "1.0.0",
+  "description": "download manager written in nodejs",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphataur/dmanager.git"
+  },
+  "author": "Nikhil Surya Mukhi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alphataur/dmanager/issues"
+  },
+  "homepage": "https://github.com/alphataur/dmanager#readme",
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "mongoose": "^5.12.13",
+    "speedometer": "^1.1.0",
+    "webtorrent": "^1.0.0",
+    "ytdl-core": "^4.8.2"
+  }
+}
