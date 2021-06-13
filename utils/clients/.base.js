@@ -43,20 +43,30 @@ class baseClient extends events{
       this.lengths = [0]
       this.speeds = [0]
       this.completed = [false]
+      this.adapters = this.uris.map(e=>this.getAdapter(e))
+      this.writers = new Array(this.adapters.length)
       await this.dbSave(true)
     }
     else{
       console.log("this is a past download entry")
-      let {hash, uris, fpaths, offsets, lengths, speeds, completed} = temp
-      this.uris = uris
-      this.fpaths = fpaths
-      this.offsets = offsets
-      this.lengths = lengths
-      this.speeds = speeds
-      this.completed = completed
+      this.hash = temp[0].hash
+      this.uris = temp.map(e => e.uris)
+      this.fpaths = temp.map(e => e.fpaths)
+      this.offsets = temp.map(e => e.fpaths)
+      this.lengths = temp.map(e => e.fpaths)
+      this.speeds = temp.map(e => e.speeds)
+      this.completed = this.offsets.map((val, index, arr)=>{
+        if(val < this.lengths[index])
+          return false
+        else
+          return true
+      })
+      this.speeds = temp.map(e => e.speeds)
+      debugger;
+      this.adapters = this.uris.map(e=>this.getAdapter(e))
+      this.writers = new Array(this.adapters.length)
     }
-    this.adapters = this.uris.map(e=>this.getAdapter(e))
-    this.writers = new Array(this.adapters.length)
+
   }
   getAdapter(uri){
     switch(url.parse(uri).protocol){
@@ -120,7 +130,8 @@ class httpClient extends baseClient{
   }
   handleChunk(chunk, index){
     this.offsets[index] += chunk.byteLength
-    this.dbSave()
+    console.log(this.saveState())
+    this.dbSave(false)
     this.emit("progress", {meta: super.saveState(), index: index})
   }
   handleError(err, index){
