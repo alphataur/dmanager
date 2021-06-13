@@ -1,27 +1,61 @@
+require("dotenv").config()
+
 const express = require("express")
 const app = express()
 const collections = require("./utils/collections")
 const clients = require("./utils/clients/core")
 
-let temp = new collections.uniEntryCollection({})
-let collection = temp.getDownloadEntryModel()
+const downloads = {}
 
-function jsonContent(res){
+function jsonContent(req, res, payload){
   res.setHeader("content-type", "application/json")
+  res.end(payload)
 }
 
-app.get("/single", async (req, res)=>{
+let uniEntryCollection = new collections.uniEntryCollection({})
+let collection = uniEntryCollection.getDownloadEntryModel()
+
+app.get("/", async (req, res)=>{
   let results = await collection.find({})
-  jsonContent(res)
-  res.end(JSON.stringify({results: results}))
+  jsonContent(req, res, JSON.stringify({"results": results}))
 })
 
-app.get("/", (req, res)=>{
-  res.end("go to /single")
+app.get("/ping", (req, res)=>{
+  res.end("pong")
 })
 
-app.post("/single", (req, res)=>{
-  
+function sanitize(object){
+  let keys = Object.keys(object)
+  let res = {}
+  keys.forEach((e)=>{
+    let n = e.length
+    if(object[e][0] === "'" && object[e][n-1] === "'")
+      res[e] = e.slice(n)
+    else
+      res[e] = object[e]
+  })
+  return res
+}
+app.get("/add", (req, res)=>{
+  let query = sanitize(req.query)
+  if(query.hash !== undefined)
+    jsonContent(req, res, JSON.stringify(downloads[query.hash]))
+  else if(query.uri !== undefined || query.fpath !== undefined){
+    let handle = new clients.base({uri: query.uri, fpath: query.fpath})
+    downloads[handle.hash] = handle.metaCompact()
+    handle.init()
+    handle.on("progress", (data)=>{
+      downloads[handle.hash] = data
+    })
+    handle.on("end", ()=>{
+      delete downloads[handle.hash]
+    })
+    handle.on("error", console.log)
+    jsonContent(req, res, JSON.stringify({hash: handle.hash, message: "added to queue"}))
+  }
+  else{
+    jsonContent(req, res, JSON.stringify({error: "invalid use of API"}))
+  }
 })
 
 app.listen(3000, ()=>{

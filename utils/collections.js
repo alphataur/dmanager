@@ -1,10 +1,10 @@
 const mongoose = require("mongoose")
-
+var uni;
 class multiEntryCollection{
   constructor(options){
     this.uri = options.uri || 'mongodb://localhost:27017/'
     this.db = options.db || 'dmanager'
-    this.collection = options.collection || "downloads"
+    this.collection = options.collection || "multidownloads"
     mongoose.set('useNewUrlParser', true);
     mongoose.set('useFindAndModify', false);
     mongoose.set('useCreateIndex', true);
@@ -39,6 +39,7 @@ class uniEntryCollection{
     this.uri = options.uri || 'mongodb://localhost:27017/'
     this.db = options.db || 'dmanager'
     this.collection = options.collection || "downloads"
+
     mongoose.set('useNewUrlParser', true);
     mongoose.set('useFindAndModify', false);
     mongoose.set('useCreateIndex', true);
@@ -62,7 +63,9 @@ class uniEntryCollection{
       speed: Number,
       completed: Boolean
     })
-    return (new mongoose.model(this.collection, downloadEntrySchema))
+    if(uni === undefined)
+      uni = new mongoose.model(this.collection, downloadEntrySchema)
+    return uni
   }
 }
 
