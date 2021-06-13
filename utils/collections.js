@@ -1,15 +1,19 @@
 const mongoose = require("mongoose")
 
-class dmanagerCollections{
+class multiEntryCollection{
   constructor(options){
-    this.uri = 'mongodb://localhost:27017/'
-    this.db = 'dmanager'
-    this.collection = "downloads"
+    this.uri = options.uri || 'mongodb://localhost:27017/'
+    this.db = options.db || 'dmanager'
+    this.collection = options.collection || "downloads"
     mongoose.set('useNewUrlParser', true);
     mongoose.set('useFindAndModify', false);
     mongoose.set('useCreateIndex', true);
     mongoose.set("useUnifiedTopology", true)
+    this.mongoose = mongoose
     mongoose.connect(this.uri+this.db)
+  }
+  close(){
+    mongoose.connection.close()
   }
   getDownloadEntryModel(){
     let downloadEntrySchema = new mongoose.Schema({
@@ -29,6 +33,40 @@ class dmanagerCollections{
   }
 }
 
+
+class uniEntryCollection{
+  constructor(options){
+    this.uri = options.uri || 'mongodb://localhost:27017/'
+    this.db = options.db || 'dmanager'
+    this.collection = options.collection || "downloads"
+    mongoose.set('useNewUrlParser', true);
+    mongoose.set('useFindAndModify', false);
+    mongoose.set('useCreateIndex', true);
+    mongoose.set("useUnifiedTopology", true)
+    mongoose.connect(this.uri+this.db)
+  }
+  close(){
+    mongoose.connection.close()
+  }
+  getDownloadEntryModel(){
+    let downloadEntrySchema = new mongoose.Schema({
+      hash: {
+        index: true,
+        unique: true,
+        type: String
+      },
+      uri: String,
+      fpath: String,
+      offset: Number,
+      length: Number,
+      speed: Number,
+      completed: Boolean
+    })
+    return (new mongoose.model(this.collection, downloadEntrySchema))
+  }
+}
+
 module.exports = {
-  dmanagerCollections: dmanagerCollections
+  multiEntryCollection,
+  uniEntryCollection
 }

@@ -8,6 +8,7 @@ const url = require("url")
 const speedometer = require("speedometer")
 const crypto = require("crypto")
 const events = require("events")
+const collections = require("../collections")
 
 class Errors{
   static URI_UNDEF = "URL not defined"
@@ -62,13 +63,30 @@ class base extends events{
       hash: this.hash
     }
   }
-  setProgress(){
+  handleError(err){
     debugger;
+    return this.reject(err)
+  }
+  setProgress(){
     this.offset = 0
     this.length = Number(this.reader.headers["content-length"])
   }
+  async dbSave(){
+    let data = await this.model.findOne({hash: this.hash}).catch(this.handleError)
+    if(data === null){
+      let temp = new this.model(this.metaCompact())
+      await temp.save().catch(this.handleError)
+    }
+    else{
+      let done = await this.model.findOneAndUpdate({hash: this.hash}, {$set: this.metaCompact()}).catch(this.handleError)
+    }
+
+  }
   async init(){
     return new Promise(async (resolve, reject)=>{
+      debugger;
+      this.resolve = resolve
+      this.reject = reject
       if(this.uri === undefined)
         return reject(Errors.URI_UNDEF)
       if(this.fpath === undefined)
@@ -80,25 +98,34 @@ class base extends events{
         this.writer = ofs.createWriteStream(this.fpath)
       else
         this.writer = ofs.createWriteStream(this.fpath, {start: this.offset, flags: "r+"})
-
+      this.collection = new collections.uniEntryCollection({})
+      this.model = this.collection.getDownloadEntryModel()
       this.reader.pipe(this.writer)
-      this.reader.on("error", reject)
-      this.reader.on("data", (chunk)=>{
-        debugger;
-        console.log("received chunk for ", this.fpath)
+      this.reader.on("error", this.handleError)
+      this.reader.on("data", async (chunk)=>{
+        this.emit("progress", this.metaCompact())
         if(this.speedometer === undefined)
           this.speedometer = speedometer()
         this.speed = this.speedometer(chunk.length)
         this.offset += chunk.byteLength
-        console.log(this.metaCompact())
+        this.dbSave()
       })
       this.reader.on("end", ()=>{
-        return resolve(this.metaCompact())
+        //wait for a moment then cleanup
+        setTimeout(()=>this.collection.close(), 1000)
+        this.emit("end", this.metaCompact())
+        return this.resolve(this.metaCompact())
       })
     })
   }
 }
-let uri = "https://i.redd.it/d1aehdnbq0h21.jpg"
 
-let a = new base({uri: uri, fpath: path.join("/home/iamfiasco/dark/dmanager", "downloads", "rhea.jpeg")})
-a.init().then(console.log).catch(console.log)
+module.exports = {
+  base: base
+}
+async function main(){
+  let uri = "https://i.redd.it/d1aehdnbq0h21.jpg"
+  let a = new base({uri: uri, fpath: path.join("/home/iamfiasco/dark/dmanager", "downloads", "rhea.jpeg")})
+  let result = await a.init()
+  console.log(result)
+}
