@@ -1,5 +1,10 @@
 const mongoose = require("mongoose")
-var uni;
+
+var set = false
+var uni = false
+var multi = false
+var torrent = false
+
 class multiEntryCollection{
   constructor(options){
     this.uri = options.uri || 'mongodb://localhost:27017/'
@@ -10,7 +15,10 @@ class multiEntryCollection{
     mongoose.set('useCreateIndex', true);
     mongoose.set("useUnifiedTopology", true)
     this.mongoose = mongoose
-    mongoose.connect(this.uri+this.db)
+    if(!set){
+      mongoose.connect(this.uri+this.db)
+      set = true
+    }
   }
   close(){
     mongoose.connection.close()
@@ -29,7 +37,9 @@ class multiEntryCollection{
       speeds: [Number],
       completed: [Boolean]
     })
-    return (new mongoose.model(this.collection, downloadEntrySchema))
+    if(!multi)
+      multi =  (new mongoose.model(this.collection, downloadEntrySchema))
+    return multi
   }
 }
 
@@ -44,7 +54,10 @@ class uniEntryCollection{
     mongoose.set('useFindAndModify', false);
     mongoose.set('useCreateIndex', true);
     mongoose.set("useUnifiedTopology", true)
-    mongoose.connect(this.uri+this.db)
+    if(!set){
+      mongoose.connect(this.uri+this.db)
+      set = true  
+    }
   }
   close(){
     mongoose.connection.close()
@@ -63,7 +76,7 @@ class uniEntryCollection{
       speed: Number,
       completed: Boolean
     })
-    if(uni === undefined)
+    if(!uni)
       uni = new mongoose.model(this.collection, downloadEntrySchema)
     return uni
   }
@@ -71,14 +84,18 @@ class uniEntryCollection{
 
 class torrentEntryCollection{
   constructor(options){
-    this.uri = options.uri || "mongodb://localhost:27017"
-    this.db = options.db || "damanger"
-    this.collection = options.collection || "downloads"
+    debugger;
+    this.uri = options.uri || "mongodb://localhost:27017/"
+    this.db = options.db || "dmanager"
+    this.collection = options.collection || "torrents"
     mongoose.set("useNewUrlParser", true)
     mongoose.set("useFindAndModify", false)
     mongoose.set("useCreateIndex", true)
     mongoose.set("useUnifiedTopology", true)
-    mongoose.connect(this.uri+this.db)
+    if(!set){
+      mongoose.connect(this.uri+this.db)
+      set = true
+    }
   }
   close(){
     mongoose.connection.close()
@@ -90,7 +107,6 @@ class torrentEntryCollection{
         unique: true,
         type: String,
         },
-      uri: this.uri,
       offset: Number,
       files: [Object],
       speed: Number,
@@ -99,7 +115,7 @@ class torrentEntryCollection{
       upSpeed: Number,
       completed: Boolean,
     })
-    if(torrent === undefined)
+    if(!torrent)
       torrent = new mongoose.model(this.collection, downloadEntrySchema)
     return torrent
   }

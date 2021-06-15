@@ -242,7 +242,9 @@ class youtube extends events{
 
 class torrent extends events{
   constructor({torrent, maxConnections, fpath}){
+    super()
     this.torrentIn = torrent
+    debugger;
     this.options = {}
     this.fpath = fpath
     this.options.path = this.fpath
@@ -264,17 +266,30 @@ class torrent extends events{
     })
   }
   metaCompact(){
-    return {
-      length: this.torrent.length,
-      offset: this.torrent.verified,
-      hash: this.hash,
-      files: this.fileState(),
-      speed: this.torrent.downloadSpeed,
-      peer: this.torrent.numPeers,
-      pieces: this.torrent.pieces,
-      upSpeed: this.torrent.uploadSpeed,
-      completed: this.completed
-    }
+    if(this.torrent === undefined)
+      return {
+        length: 0,
+        offset: 0,
+        hash: this.hash,
+        files: [],
+        speed: 0,
+        peer: 0,
+        pieces: 0,
+        upSpeed: 0,
+        completed: false
+      }
+    else
+      return {
+        length: this.torrent.length,
+        offset: this.torrent.verified,
+        hash: this.hash,
+        files: this.fileState(),
+        speed: this.torrent.downloadSpeed,
+        peer: this.torrent.numPeers,
+        pieces: this.torrent.pieces,
+        upSpeed: this.torrent.uploadSpeed,
+        completed: this.completed
+      }
   }
   dbInit(){
     this.collections = new collections.torrentEntryCollection({})
@@ -372,5 +387,6 @@ async function main(){
 
 module.exports = {
   base: base,
-  youtube: youtube
+  youtube: youtube,
+  torrent: torrent
 }
