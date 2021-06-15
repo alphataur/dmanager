@@ -273,7 +273,7 @@ class torrent extends events{
       peer: this.torrent.numPeers,
       pieces: this.torrent.pieces,
       upSpeed: this.torrent.uploadSpeed,
-      completed = this.completed
+      completed: this.completed
     }
   }
   dbInit(){

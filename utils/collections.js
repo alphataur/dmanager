@@ -89,8 +89,8 @@ class torrentEntryCollection{
         index: true,
         unique: true,
         type: String,
-      }
-      uri, this.uri,
+        },
+      uri: this.uri,
       offset: Number,
       files: [Object],
       speed: Number,
