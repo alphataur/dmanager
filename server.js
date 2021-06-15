@@ -3,8 +3,9 @@ require("dotenv").config()
 const express = require("express")
 const app = express()
 const path = require("path")
+const bp = require("body-parser")
 app.set("view engine", "pug")
-
+app.use(bp.urlencoded({extended: true}))
 app.set("views", path.join(__dirname, "templates"))
 
 
