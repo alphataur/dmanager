@@ -13,6 +13,7 @@ const events = require("events")
 const collections = require("../collections")
 const cp = require("child_process")
 const ytdl = require("ytdl-core")
+const webtorrent = require("webtorrent")
 
 //do something about this patch(centralized loc)
 if(Array.prototype.last === undefined){
@@ -239,6 +240,145 @@ class youtube extends events{
   }
 }
 
+class torrent extends events{
+  constructor({torrent, maxConnections, fpath}){
+    super()
+    this.torrentIn = torrent
+    debugger;
+    this.options = {}
+    this.fpath = fpath
+    this.options.path = this.fpath
+    this.maxConnections = maxConnections || 4
+    this.options.maxConns = this.maxConnections
+    this.client = new webtorrent({maxConns: this.maxConnetions})
+    this.files = []
+    this.completed = false
+    this.dbInit()
+  }
+  fileState(){
+    return this.files.map((file)=>{
+      return {
+        name: file.name,
+        path: file.path,
+        length: file.length,
+        offset: file.downloaded
+      }
+    })
+  }
+  metaCompact(){
+    if(this.torrent === undefined)
+      return {
+        length: 0,
+        offset: 0,
+        hash: this.hash,
+        files: [],
+        speed: 0,
+        peer: 0,
+        pieces: 0,
+        upSpeed: 0,
+        completed: false
+      }
+    else
+      return {
+        length: this.torrent.length,
+        offset: this.torrent.verified,
+        hash: this.hash,
+        files: this.fileState(),
+        speed: this.torrent.downloadSpeed,
+        peer: this.torrent.numPeers,
+        pieces: this.torrent.pieces,
+        upSpeed: this.torrent.uploadSpeed,
+        completed: this.completed
+      }
+  }
+  dbInit(){
+    this.collections = new collections.torrentEntryCollection({})
+    this.model = this.collections.getDownloadEntryModel()
+  }
+  handleError(err){
+    this.emit("error", err)
+  }
+  handleUpdate(){
+    this.dbSave()
+  }
+  async dbSave(){
+    let data = await this.model.findOne({hash: this.hash}).catch(this.handleError)
+    if(data === null){
+      let temp = new this.model(this.metaCompact())
+      await temp.save().catch(this.handleError)
+    }
+    else{
+      let done = await this.model.findOneAndUpdate({hash: this.hash}, {$set: this.metaCompact()}).catch(this.handleError)
+    }
+  }
+  rescan(){
+    this.torrent.rescanFiles()
+  }
+  resume(){
+    this.torrent.resume()
+  }
+  pause(){
+    this.torrent.pause()
+  }
+  select(start, end, priority){
+    this.torrent.select(start, end, priority)
+  }
+  init(){
+    return new Promise((resolve , reject)=>{
+      this.client.add(this.torrentIn, this.options, (torrent)=>{
+        this.torrent = torrent
+        this.hash = this.torrent.infoHash
+        this.files = this.torrent.files
+        this.torrent.on("download", (bytes)=>{
+          //this.emit("progress", this.metaCompact())
+          this.handleUpdate()
+        })
+
+        this.torrent.on("done", ()=>{
+          this.completed = true
+          this.dbSave()
+          let res = {meta: this.metaCompact(), hash: this.hash, success: true}
+          this.emit("end", res)
+          return resolve(res)
+          //this.emit("end", {meta: this.metaCompact(), success: true})
+          //return resolve(this.metaCompact())
+        })
+
+        this.torrent.on("error", (err)=>{
+          let res = {meta: this.metaCompact, error: err, success: false}
+          this.emit("error", res)
+          return reject(res)
+        })
+        //torrent.pieces
+        //torrent.pieceLength
+        //torrent.lastPieceLength
+        //torrent.timeRemaining => milliseconds
+        //torrent.received => bytes (all pieces)
+        //torrent.verified => bytes (verified pieces ok)
+        //torrent.uploaded => bytes
+        //torrent.downloadSpeed
+        //torrent.uploadSpeed
+        //torrent.numPeers
+        //torrent.path
+        //torrent.done
+        //torrent.length
+
+        ////mods
+        //torrent.select(start, end, priority)
+        //torrent.deselect
+        //torrent.critical(start,end)
+        //torrent.pause()
+        //torrent.resume()
+        //torrent.rescanFiles(err=>{})
+        //torrent.on("meta")
+        //torrent.on("download", (bytes)) //=>
+
+      })
+    })
+  }
+}
+
+
 async function main(){
   let a = new youtube({uri: "https://www.youtube.com/watch?v=eTVsMA48gtM"})
   await a.init()
@@ -247,5 +387,6 @@ async function main(){
 
 module.exports = {
   base: base,
-  youtube: youtube
+  youtube: youtube,
+  torrent: torrent
 }
