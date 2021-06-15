@@ -8,4 +8,4 @@ Todo:
 - [ ] multiprotocol (http/https)
 - [ ] resume support
 - [ ] parallel downloads
-
+- [ ] torrent support

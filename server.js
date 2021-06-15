@@ -4,42 +4,30 @@ const express = require("express")
 const app = express()
 const collections = require("./utils/collections")
 const clients = require("./utils/clients/core")
+const misc = require("./utils/misc")
+
 
 const downloads = {}
 
-function jsonContent(req, res, payload){
-  res.setHeader("content-type", "application/json")
-  res.end(payload)
-}
+
 
 let uniEntryCollection = new collections.uniEntryCollection({})
 let collection = uniEntryCollection.getDownloadEntryModel()
 
 app.get("/", async (req, res)=>{
   let results = await collection.find({})
-  jsonContent(req, res, JSON.stringify({"results": results}))
+  misc.jsonContent(req, res, JSON.stringify({"results": results}))
 })
 
 app.get("/ping", (req, res)=>{
   res.end("pong")
 })
 
-function sanitize(object){
-  let keys = Object.keys(object)
-  let res = {}
-  keys.forEach((e)=>{
-    let n = e.length
-    if(object[e][0] === "'" && object[e][n-1] === "'")
-      res[e] = e.slice(n)
-    else
-      res[e] = object[e]
-  })
-  return res
-}
+
 app.get("/add", (req, res)=>{
-  let query = sanitize(req.query)
+  let query = misc.sanitize(req.query)
   if(query.hash !== undefined)
-    jsonContent(req, res, JSON.stringify(downloads[query.hash]))
+    misc.jsonContent(req, res, JSON.stringify(downloads[query.hash]))
   else if(query.uri !== undefined || query.fpath !== undefined){
     let handle = new clients.base({uri: query.uri, fpath: query.fpath})
     downloads[handle.hash] = handle.metaCompact()
@@ -51,11 +39,31 @@ app.get("/add", (req, res)=>{
       delete downloads[handle.hash]
     })
     handle.on("error", console.log)
-    jsonContent(req, res, JSON.stringify({hash: handle.hash, message: "added to queue"}))
+    misc.jsonContent(req, res, JSON.stringify({hash: handle.hash, message: "added to queue"}))
   }
   else{
-    jsonContent(req, res, JSON.stringify({error: "invalid use of API"}))
+    misc.jsonContent(req, res, JSON.stringify({error: "invalid use of API"}))
   }
+})
+
+app.get("/ytadd", (req, res)=>{
+  let query = misc.sanitize(req.query)
+  if(query.hash !== undefined)
+    misc.jsonContent(req, res, JSON.stringify(downloads[query.hash]))
+  else if(query.uri !== undefined){
+    let handle = new clients.youtube({uri: query.uri})
+    handle.init()
+    downloads[handle.hash] = handle.metaCompact()
+    handle.on("progress", (data)=>{
+      downloads[handle.hash] = handle.metaCompact()
+    })
+    handle.on("end", ()=>{
+      delete downloads[handle.hash]
+    })
+    misc.jsonContent(req, res, JSON.stringify({hash: handle.hash, message: "added to queue"}))
+  }
+  else
+    misc.jsonContent(req, res, JSON.stringify({error: "invalid API usage"}))
 })
 
 app.listen(3000, ()=>{
