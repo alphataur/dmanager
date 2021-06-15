@@ -153,11 +153,8 @@ class youtube extends events{
     this.length = 0
     this.audioWritePath = path.join(process.env.BASE, this.hash+"_audio.mkv")
     this.videoWritePath = path.join(process.env.BASE, this.hash+"_video.mkv")
-
     this.audioWriteStream = ofs.createWriteStream(this.audioWritePath)
-
     this.videoWriteStream = ofs.createWriteStream(this.videoWritePath)
-    
     this.completed = false
     this.collection = new collections.uniEntryCollection({})
     this.model = this.collection.getDownloadEntryModel()
@@ -223,8 +220,11 @@ class youtube extends events{
       })
       this.audioStream.pipe(this.audioWriteStream)
       this.videoStream.pipe(this.videoWriteStream)
-      this.audioStream.on("data", (chunk) => this.handleUpdate(chunk)).on("error", (e)=>this.handleError(e))
-      this.videoStream.on("data", (chunk) => this.handleUpdate(chunk)).on("end", (e)=>this.handleEnd(e)).on("error", (e)=>this.handleError(e))
+      this.audioStream.on("data", (chunk) =>{this.handleUpdate(chunk)})
+                      .on("error", (e)=>{this.handleError(e)})
+      this.videoStream.on("data", (chunk) => {this.handleUpdate(chunk)})
+                      .on("end", (e)=>{this.handleEnd(e)})
+                      .on("error", (e)=>{this.handleError(e)})
     })
   }
   async dbSave(){
