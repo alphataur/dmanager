@@ -158,7 +158,8 @@ class youtube extends events{
     this.videoWriteStream = ofs.createWriteStream(this.videoWritePath)
     
     this.completed = false
-    this.model = new collections.uniEntryCollection({})
+    this.collection = new collections.uniEntryCollection({})
+    this.model = this.collection.getDownloadEntryModel()
   }
   metaCompact(){
     return {
@@ -167,7 +168,8 @@ class youtube extends events{
       hash: this.hash,
       uri: this.uri,
       fpath: this.fpath,
-      speed: this.speed || 0
+      speed: this.speed || 0,
+      completed: this.completed
     }
   }
   getHash(){
@@ -189,13 +191,16 @@ class youtube extends events{
   }
   handleEnd(){
     console.log("merging files")
+    this.completed = true
+    this.dbSave()
     let handle = cp.spawn("ffmpeg", ["-i", this.videoWritePath, "-i", this.audioWritePath, "-c", "copy", this.fpath+".mkv"])
     handle.on("close", async (code) =>{
       console.log("removing files")
-      await fs.promises.unlink(this.videoWritePath).catch(console.log)
-      await fs.promises.unlink(this.audioWritePath).catch(console.log)
+      await fs.unlink(this.videoWritePath).catch(console.log)
+      await fs.unlink(this.audioWritePath).catch(console.log)
+
       this.emit("end", {success: true, error: false, meta: this.metaCompact()})
-      setTimeout(()=>this.model.close(), 1000)
+      setTimeout(()=>this.collection.close(), 1000)
       this.resolve()
     })
   }
@@ -209,15 +214,20 @@ class youtube extends events{
       this.resolve = resolve
       this.reject = reject
       this.videoStream.on("info", (a, b)=>{
+        this.length += Number(b.contentLength)
         this.fpath = path.join(process.env.BASE, a.videoDetails.title+".mkv")
+      })
+      this.audioStream.on("info", (a, b)=>{
+        this.length += Number(b.contentLength)
       })
       this.audioStream.pipe(this.audioWriteStream)
       this.videoStream.pipe(this.videoWriteStream)
-      this.audioStream.on("data", (e)=>{this.handleUpdate(e)}).on("error", this.handleError)
-      this.videoStream.on("data", (e)=>{this.handleUpdate(e)}).on("end", this.handleEnd).on("error", this.handleError)
+      this.audioStream.on("data", (chunk) => this.handleUpdate(chunk)).on("error", (e)=>this.handleError(e))
+      this.videoStream.on("data", (chunk) => this.handleUpdate(chunk)).on("end", (e)=>this.handleEnd(e)).on("error", (e)=>this.handleError(e))
     })
   }
   async dbSave(){
+    debugger;
     let data = await this.model.findOne({hash: this.hash}).catch(this.handleError)
     if(data === null){
       let temp = new this.model(this.metaCompact())
@@ -234,7 +244,6 @@ async function main(){
   await a.init()
 }
 
-main()
 
 module.exports = {
   base: base,
