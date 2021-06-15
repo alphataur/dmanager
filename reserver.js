@@ -74,5 +74,6 @@ app.listen(3000, ()=>{
 
 wsapp.on("connection", (connection)=>{
   debugger;
-  setFeeder(connection, handle)
+  connection.send("dont!")
+  //setFeeder(connection, handle)
 })

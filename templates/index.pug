@@ -7,7 +7,7 @@ head
     script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" type="text/css")
 body
   .container
-    form(method="post" action="/add/uni")
+    form
       .row
         h3 Enter links here
       .row
@@ -21,10 +21,12 @@ body
           input(class="u-full-width" type="text" placeholder="enter fpath here" id="unipath")
           button.primary(id="uni") Download
       .row
-        .progress
+        .six.columns
+          p Info Hash
+          #uniHash
     .row
       h3 Enter youtube links here
-    form(method="post" action="/add/youtube")
+    form
       .row
         .six.columns
           label(for="uri")
@@ -32,4 +34,6 @@ body
           input(class="u-full-width" type="text" placeholder="enter url here" id="youtubelink")
           button.primary(id="youtube") Download
       .row
-        .progress
+        .six-columns
+          p Info Hash
+          #youtubeHash
