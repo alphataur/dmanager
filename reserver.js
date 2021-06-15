@@ -27,8 +27,7 @@ function setFeeder(connection, handle){
 }
 
 function checkYoutube(uri){
-  console.log(uri)
-  return uri.includes("youtube.com")
+  return true
 }
 
 var downloads = {}
@@ -48,12 +47,15 @@ app.post("/add/uni", (req, res)=>{
     res.json({success: false, message: Errors.INVALID_USAGE})
 })
 
-app.post("/add/youtube", (req, res)=>{
-  debugger;
+app.post("/add/youtube",async (req, res)=>{
   if(checkYoutube(req.body.uri)){
     let handle = new clients.youtube({uri: req.body.uri})
-    if(!(handle.hash in downloads)){
+    let results = await uniModels.find({uri: req.body.uri})
+    console.log(results)
+    if(downloads[handle.hash] === undefined){
+      console.log("initing")
       handle.init()
+      handle.on("error", console.log)
       downloads[handle.hash] = handle
       res.json({success: true, hash: handle.hash, message: "entry already added"})
     }
@@ -72,8 +74,22 @@ app.listen(3000, ()=>{
   console.log("server spinning at 3000")
 })
 
+app.get("/list", async (req, res)=>{
+  let temp = await uniModels.find({})
+  res.json({results: temp})
+})
+
+app.get("/:hash", async (req, res)=>{
+  let result = await uniModels.findOne({hash: req.params.hash})
+  res.json(result)
+})
+
 wsapp.on("connection", (connection)=>{
-  debugger;
-  connection.send("dont!")
+  connection.on("message", (message)=>{
+    if(message in downloads)
+      connection.send(downloads[message].metaCompact())
+    else
+      connection.send("sorry couldnt understand")
+  })
   //setFeeder(connection, handle)
 })

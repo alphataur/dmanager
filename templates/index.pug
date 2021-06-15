@@ -4,7 +4,9 @@ head
     script(type='text/javascript' src="/static/native.js")
     script(type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js")
     link(rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css")
-    script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" type="text/css")
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" type="text/javascript")
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/mootools/1.6.0/mootools-core.min.js" type="text/javascript")
+
 body
   .container
     form
@@ -20,10 +22,6 @@ body
             Enter fpath
           input(class="u-full-width" type="text" placeholder="enter fpath here" id="unipath")
           button.primary(id="uni") Download
-      .row
-        .six.columns
-          p Info Hash
-          #uniHash
     .row
       h3 Enter youtube links here
     form
@@ -34,6 +32,10 @@ body
           input(class="u-full-width" type="text" placeholder="enter url here" id="youtubelink")
           button.primary(id="youtube") Download
       .row
-        .six-columns
+        .six.columns
           p Info Hash
           #youtubeHash
+      progress(id="youtubeprogress" value="0" max="100")
+      #youtubename
+      #youtubepercentage
+
