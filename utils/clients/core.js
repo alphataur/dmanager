@@ -12,6 +12,15 @@ const crypto = require("crypto")
 const events = require("events")
 const collections = require("../collections")
 const cp = require("child_process")
+const ytdl = require("ytdl-core")
+
+//do something about this patch(centralized loc)
+if(Array.prototype.last === undefined){
+  Array.prototype.last = function(){
+    return this[this.length - 1]
+  }
+}
+
 
 class Errors{
   static URI_UNDEF = "URL not defined"
@@ -69,7 +78,6 @@ class base extends events{
     }
   }
   handleError(err){
-    debugger;
     this.emit("error", {meta: this.metaCompact(), error: err, hash: this.hash})
     return this.reject(err)
   }
@@ -92,7 +100,6 @@ class base extends events{
 
   async init(){
     return new Promise(async (resolve, reject)=>{
-      debugger;
       this.resolve = resolve
       this.reject = reject
       if(this.uri === undefined)
@@ -149,9 +156,10 @@ class youtube extends events{
     this.audioWriteStream = ofs.createWriteStream(this.audioWritePath)
 
     this.videoWriteStream = ofs.createWriteStream(this.videoWritePath)
-    this.speedometer = speedometer()
+    
     this.completed = false
-    this.model = collections.uniEntryCollection({})
+    this.collection = new collections.uniEntryCollection({})
+    this.model = this.collection.getDownloadEntryModel()
   }
   metaCompact(){
     return {
@@ -160,35 +168,45 @@ class youtube extends events{
       hash: this.hash,
       uri: this.uri,
       fpath: this.fpath,
-      speed: this.speed || 0
+      speed: this.speed || 0,
+      completed: this.completed
     }
   }
   getHash(){
     if(this.hasher === undefined){
-      this.haser = crypto.createHash("md5")
+      this.hasher = crypto.createHash("md5")
       this.hasher.update(this.uri)
     }
-    return this.hasher.digest("uri")
+    return this.hasher.digest("hex")
   }
   handleUpdate(chunk){
+    debugger;
     this.offset += chunk.byteLength
+    if(this.speedometer === undefined)
+      this.speedometer = speedometer()
     this.speed = this.speedometer(chunk.byteLength)
+
     this.emit("progress", this.metaCompact())
     this.dbSave()
   }
   handleEnd(){
     console.log("merging files")
+    this.completed = true
+    this.dbSave()
     let handle = cp.spawn("ffmpeg", ["-i", this.videoWritePath, "-i", this.audioWritePath, "-c", "copy", this.fpath+".mkv"])
     handle.on("close", async (code) =>{
       console.log("removing files")
-      await fs.promises.unlink(this.videoWritePath).catch(console.log)
-      await fs.promises.unlink(this.audioWritePath).catch(console.log)
+      await fs.unlink(this.videoWritePath).catch(console.log)
+      await fs.unlink(this.audioWritePath).catch(console.log)
+
       this.emit("end", {success: true, error: false, meta: this.metaCompact()})
+      setTimeout(()=>this.collection.close(), 1000)
       this.resolve()
     })
   }
   handleError(err){
     this.emit("error", {success: false, error: err, meta: this.metaCompact()})
+    setTimeout(()=>this.model.close(), 1000)
     this.reject(err)
   }
   init(){
@@ -196,15 +214,20 @@ class youtube extends events{
       this.resolve = resolve
       this.reject = reject
       this.videoStream.on("info", (a, b)=>{
+        this.length += Number(b.contentLength)
         this.fpath = path.join(process.env.BASE, a.videoDetails.title+".mkv")
+      })
+      this.audioStream.on("info", (a, b)=>{
+        this.length += Number(b.contentLength)
       })
       this.audioStream.pipe(this.audioWriteStream)
       this.videoStream.pipe(this.videoWriteStream)
-      this.audioStream.on("data", this.handleUpdate).on("error", this.handleError)
-      this.writeStream.on("data", this.handleUpdate).on("end", this.handleEnd).on("error", this.handleError)
+      this.audioStream.on("data", (chunk) => this.handleUpdate(chunk)).on("error", (e)=>this.handleError(e))
+      this.videoStream.on("data", (chunk) => this.handleUpdate(chunk)).on("end", (e)=>this.handleEnd(e)).on("error", (e)=>this.handleError(e))
     })
   }
   async dbSave(){
+    debugger;
     let data = await this.model.findOne({hash: this.hash}).catch(this.handleError)
     if(data === null){
       let temp = new this.model(this.metaCompact())
@@ -214,6 +237,11 @@ class youtube extends events{
       let done = await this.model.findOneAndUpdate({hash: this.hash}, {$set: this.metaCompact()}).catch(this.handleError)
     }
   }
+}
+
+async function main(){
+  let a = new youtube({uri: "https://www.youtube.com/watch?v=eTVsMA48gtM"})
+  await a.init()
 }
 
 
