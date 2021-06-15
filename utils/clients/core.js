@@ -242,7 +242,7 @@ class youtube extends events{
 
 class torrent extends events{
   constructor({torrent, maxConnections, fpath}){
-    this.torrent = torrent
+    this.torrentIn = torrent
     this.options = {}
     this.fpath = fpath
     this.options.path = this.fpath
@@ -251,6 +251,7 @@ class torrent extends events{
     this.client = new webtorrent({maxConns: this.maxConnetions})
     this.files = []
     this.completed = false
+    this.dbInit()
   }
   fileState(){
     return this.files.map((file)=>{
@@ -266,16 +267,35 @@ class torrent extends events{
     return {
       length: this.torrent.length,
       offset: this.torrent.verified,
-      hash: this.torrent.infoHash,
+      hash: this.hash,
       files: this.fileState(),
       speed: this.torrent.downloadSpeed,
       peer: this.torrent.numPeers,
       pieces: this.torrent.pieces,
-      upSpeed: this.torrent.uploadSpeed
+      upSpeed: this.torrent.uploadSpeed,
+      completed = this.completed
     }
   }
-  dbInit()
-  dbSave()
+  dbInit(){
+    this.collections = new collections.torrentEntryCollection({})
+    this.model = this.collections.getDownloadEntryModel()
+  }
+  handleError(err){
+    this.emit("error", err)
+  }
+  handleUpdate(){
+    this.dbSave()
+  }
+  async dbSave(){
+    let data = await this.model.findOne({hash: this.hash}).catch(this.handleError)
+    if(data === null){
+      let temp = new this.model(this.metaCompact())
+      await temp.save().catch(this.handleError)
+    }
+    else{
+      let done = await this.model.findOneAndUpdate({hash: this.hash}, {$set: this.metaCompact()}).catch(this.handleError)
+    }
+  }
   rescan(){
     this.torrent.rescanFiles()
   }
@@ -290,20 +310,29 @@ class torrent extends events{
   }
   init(){
     return new Promise((resolve , reject)=>{
-      this.client.add(this.torrent, this.options, (torrent)=>{
+      this.client.add(this.torrentIn, this.options, (torrent)=>{
         this.torrent = torrent
+        this.hash = this.torrent.infoHash
         this.files = this.torrent.files
         this.torrent.on("download", (bytes)=>{
-          this.emit("progress", this.metaCompact())
+          //this.emit("progress", this.metaCompact())
+          this.handleUpdate()
         })
 
         this.torrent.on("done", ()=>{
-          this.emit("end", {meta: this.metaCompact(), success: true})
-          return resolve(this.metaCompact())
+          this.completed = true
+          this.dbSave()
+          let res = {meta: this.metaCompact(), hash: this.hash, success: true}
+          this.emit("end", res)
+          return resolve(res)
+          //this.emit("end", {meta: this.metaCompact(), success: true})
+          //return resolve(this.metaCompact())
         })
 
-        this.torrent.on("error", ()=>{
-          this.emit("error", {meta: this.metaCompact, error: err, success: false})
+        this.torrent.on("error", (err)=>{
+          let res = {meta: this.metaCompact, error: err, success: false}
+          this.emit("error", res)
+          return reject(res)
         })
         //torrent.pieces
         //torrent.pieceLength
