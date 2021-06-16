@@ -24,6 +24,19 @@ window.onload = function(){
     },2000)
   }
 
+  function tars(){
+    var interval = setInterval(()=>{
+      if(uniHash !== undefined)
+        fetch(base+uniHash).then((body)=>body.json()).then((data)=>{
+          uniprogress = (data.offset / data.length) * 100
+          $("#uniname").text(data.fpath)
+          $("#unipercentage").text(uniprogress)
+          $("#uniprogress").attr("value", uniprogress)
+          if(data.completed)
+            clearInterval(interval)
+        }).catch(console.log)
+    },2000)
+  }
   function setUni(res){
     console.log(res)
   }
@@ -68,6 +81,7 @@ window.onload = function(){
         if(json.hash !== undefined){
           $("#uniHash").text(json.hash)
           uniHash = json.hash
+          tars()
         }
       }).catch(console.log)
     return false

@@ -66,6 +66,14 @@ app.post("/add/youtube",async (req, res)=>{
     res.json({success: false, message: Errors.INVALID_USAGE})
 })
 
+app.post("/add/torrent", (req, res)=>{
+  let handle = new clients.torrent({maxConnections: 4, torrent: req.body.torrent, fpath: process.env.BASE})
+  handle.init()
+  handle.on("hash", (hash)=>{
+    res.json({success: true, hash: hash, message: "added to queue"})
+  })
+})
+
 app.get("/ping", (req, res)=>{
   res.json({success: true, message: "pong"})
 })

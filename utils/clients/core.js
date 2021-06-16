@@ -38,6 +38,9 @@ class base extends events{
     this.length = length
     this.setHash()
   }
+  pause(){
+    this.reader.destroy()
+  }
   setHash(){
     if(this.hasher === undefined){
       this.hasher = crypto.createHash("md5")
@@ -79,6 +82,7 @@ class base extends events{
     }
   }
   handleError(err){
+    debugger;
     this.emit("error", {meta: this.metaCompact(), error: err, hash: this.hash})
     return this.reject(err)
   }
@@ -97,7 +101,6 @@ class base extends events{
     }
 
   }
-
 
   async init(){
     return new Promise(async (resolve, reject)=>{
@@ -159,6 +162,10 @@ class youtube extends events{
     this.completed = false
     this.collection = new collections.uniEntryCollection({})
     this.model = this.collection.getDownloadEntryModel()
+  }
+  pause(){
+    this.audioStream.destroy()
+    this.videoStream.destroy()
   }
   metaCompact(){
     return {
@@ -245,7 +252,6 @@ class torrent extends events{
   constructor({torrent, maxConnections, fpath}){
     super()
     this.torrentIn = torrent
-    debugger;
     this.options = {}
     this.fpath = fpath
     this.options.path = this.fpath
@@ -297,6 +303,7 @@ class torrent extends events{
     this.model = this.collections.getDownloadEntryModel()
   }
   handleError(err){
+    debugger;
     this.emit("error", err)
   }
   handleUpdate(){
@@ -329,6 +336,7 @@ class torrent extends events{
       this.client.add(this.torrentIn, this.options, (torrent)=>{
         this.torrent = torrent
         this.hash = this.torrent.infoHash
+        this.emit("hash", this.hash)
         this.files = this.torrent.files
         this.torrent.on("download", (bytes)=>{
           //this.emit("progress", this.metaCompact())
@@ -381,8 +389,10 @@ class torrent extends events{
 
 
 async function main(){
-  let a = new youtube({uri: "https://www.youtube.com/watch?v=U41bONK2V-U"})
-  await a.init()
+  //let a = new youtube({uri: "https://www.youtube.com/watch?v=U41bONK2V-U"})
+  //await a.init()
+  let a = new torrent({torrent: "5e5e3d7bdb09f57780925992cf39dee47cfd7b82", fpath: "/home/iamfiasco/Desktop"})
+  a.init(console.log).catch(console.log)
 }
 main()
 
