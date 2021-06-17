@@ -34,7 +34,15 @@ downloadRouter.get("/uni/list", async (req, res)=>{
   let payload = await uniModels.find({}).catch((err)=>{
     res.json(errorify(err))
   })
-  res.json(payload)
+  payload = payload.map((e)=>{
+    let temp = e.toObject()
+    temp["size"] = temp["length"]
+    delete temp["length"]
+    delete temp["__v"]
+    delete temp["_id"]
+    return temp
+  })
+  res.json({results: payload})
 })
 
 downloadRouter.post("/uni/add", async (req, res)=>{
@@ -71,7 +79,19 @@ downloadRouter.get("/uni/:hash", async (req, res)=>{
   else
     res.json(errorify("hash not found"))
 })
-
+downloadRouter.get("/info/list", async (req, res)=>{
+  let payload = await uniModels.find({}).catch((err)=>res.json(errorify(err)))
+  debugger;
+  payload = payload.map((e)=>{
+    let temp = e.toObject()
+    temp["size"] = temp["length"]
+    delete temp["length"]
+    delete temp["__v"]
+    delete temp["_id"]
+    return temp
+  })
+  res.render("list", {results: payload})
+})
 downloadRouter.get("/info/:hash", async (req, res)=>{
   let results = await uniModels.findOne({hash: req.params.hash}).catch((err)=>res.json(errorify(err)))
   results = results.toObject()

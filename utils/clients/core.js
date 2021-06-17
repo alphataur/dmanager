@@ -391,10 +391,11 @@ class torrent extends events{
 async function main(){
   //let a = new youtube({uri: "https://www.youtube.com/watch?v=U41bONK2V-U"})
   //await a.init()
-  let a = new torrent({torrent: "5e5e3d7bdb09f57780925992cf39dee47cfd7b82", fpath: "/home/iamfiasco/Desktop"})
-  a.init(console.log).catch(console.log)
+  //let a = new torrent({torrent: "5e5e3d7bdb09f57780925992cf39dee47cfd7b82", fpath: "/home/iamfiasco/Desktop"})
+  //a.init(console.log).catch(console.log)
+  let a = new base({uri: "http://s27.bitdl.ir/Movies/Borat.2.Subsequent.Moviefilm.2020/Borat.2.Subsequent.Moviefilm.2020.REPACK.720p.WEBRip.800MB.x264-GalaxyRG.Bia2HD.mkv", "fpath": "borat2.mkv"})
+  a.init().catch(console.log).then(console.log)
 }
-
 module.exports = {
   base: base,
   youtube: youtube,
