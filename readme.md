@@ -4,8 +4,10 @@ simple download manager for multiple transports written in node
 
 Todo:
 
-- [x] Download/fetch support
+- [x] Download/fetch support(pass headers)
 - [x] multiprotocol (http/https)
-- [ ] resume support
-- [ ] parallel downloads
-- [ ] torrent support
+- [x] resume support
+- [ ] resume support for youtube links
+- [x] parallel downloads
+- [ ] parallel batch downloads
+- [ ] torrent support(currently on script level)
