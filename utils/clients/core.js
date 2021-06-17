@@ -38,6 +38,9 @@ class base extends events{
     this.length = length
     this.setHash()
   }
+  pause(){
+    this.reader.destroy()
+  }
   setHash(){
     if(this.hasher === undefined){
       this.hasher = crypto.createHash("md5")
@@ -79,6 +82,7 @@ class base extends events{
     }
   }
   handleError(err){
+    debugger;
     this.emit("error", {meta: this.metaCompact(), error: err, hash: this.hash})
     return this.reject(err)
   }
@@ -90,14 +94,13 @@ class base extends events{
     let data = await this.model.findOne({hash: this.hash}).catch(this.handleError)
     if(data === null){
       let temp = new this.model(this.metaCompact())
-      await temp.save().catch(this.handleError)
+      await temp.save().catch((err)=>{this.handleError(err)})
     }
     else{
       let done = await this.model.findOneAndUpdate({hash: this.hash}, {$set: this.metaCompact()}).catch(this.handleError)
     }
 
   }
-
 
   async init(){
     return new Promise(async (resolve, reject)=>{
@@ -132,7 +135,7 @@ class base extends events{
       this.reader.on("end", ()=>{
         //wait for a moment then cleanup
         this.completed = true
-        setTimeout(()=>this.collection.close(), 1000)
+        //setTimeout(()=>this.collection.close(), 1000)
         this.emit("end", this.metaCompact())
         return this.resolve(this.metaCompact())
       })
@@ -153,11 +156,16 @@ class youtube extends events{
     this.length = 0
     this.audioWritePath = path.join(process.env.BASE, this.hash+"_audio.mkv")
     this.videoWritePath = path.join(process.env.BASE, this.hash+"_video.mkv")
+    debugger;
     this.audioWriteStream = ofs.createWriteStream(this.audioWritePath)
     this.videoWriteStream = ofs.createWriteStream(this.videoWritePath)
     this.completed = false
     this.collection = new collections.uniEntryCollection({})
     this.model = this.collection.getDownloadEntryModel()
+  }
+  pause(){
+    this.audioStream.destroy()
+    this.videoStream.destroy()
   }
   metaCompact(){
     return {
@@ -178,7 +186,7 @@ class youtube extends events{
     return this.hasher.digest("hex")
   }
   handleUpdate(chunk){
-    debugger;
+
     this.offset += chunk.byteLength
     if(this.speedometer === undefined)
       this.speedometer = speedometer()
@@ -198,13 +206,13 @@ class youtube extends events{
       await fs.unlink(this.audioWritePath).catch(console.log)
 
       this.emit("end", {success: true, error: false, meta: this.metaCompact()})
-      setTimeout(()=>this.collection.close(), 1000)
+      //setTimeout(()=>this.collection.close(), 1000)
       this.resolve()
     })
   }
   handleError(err){
     this.emit("error", {success: false, error: err, meta: this.metaCompact()})
-    setTimeout(()=>this.model.close(), 1000)
+    //setTimeout(()=>this.model.close(), 1000)
     this.reject(err)
   }
   init(){
@@ -244,7 +252,6 @@ class torrent extends events{
   constructor({torrent, maxConnections, fpath}){
     super()
     this.torrentIn = torrent
-    debugger;
     this.options = {}
     this.fpath = fpath
     this.options.path = this.fpath
@@ -296,6 +303,7 @@ class torrent extends events{
     this.model = this.collections.getDownloadEntryModel()
   }
   handleError(err){
+    debugger;
     this.emit("error", err)
   }
   handleUpdate(){
@@ -328,6 +336,7 @@ class torrent extends events{
       this.client.add(this.torrentIn, this.options, (torrent)=>{
         this.torrent = torrent
         this.hash = this.torrent.infoHash
+        this.emit("hash", this.hash)
         this.files = this.torrent.files
         this.torrent.on("download", (bytes)=>{
           //this.emit("progress", this.metaCompact())
@@ -380,10 +389,11 @@ class torrent extends events{
 
 
 async function main(){
-  let a = new youtube({uri: "https://www.youtube.com/watch?v=eTVsMA48gtM"})
-  await a.init()
+  //let a = new youtube({uri: "https://www.youtube.com/watch?v=U41bONK2V-U"})
+  //await a.init()
+  let a = new torrent({torrent: "5e5e3d7bdb09f57780925992cf39dee47cfd7b82", fpath: "/home/iamfiasco/Desktop"})
+  a.init(console.log).catch(console.log)
 }
-
 
 module.exports = {
   base: base,
