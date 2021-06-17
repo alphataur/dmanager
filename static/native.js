@@ -1,9 +1,15 @@
 window.onload = function(){
   var youtubeResp = undefined
   var uniResp = undefined
-  var youtubeURI = "http://localhost:3000/add/youtube"
-  var uniURI = "http://localhost:3000/add/uni"
-  var base = "http://localhost:3000/"
+
+  var base = "http://localhost:3000/download/"
+  
+  var youtubeURI = base+"youtube/add"
+  var uniURI = base + "uni/add"
+
+  var youtubeHashURI = base + "uni/"
+  var uniHashURI = base + "uni/"
+
   var youtubeHash = undefined
   var uniHash = undefined
   var ws = new WebSocket("ws://localhost:3001")
@@ -13,9 +19,10 @@ window.onload = function(){
   function encase(){
     var interval = setInterval(()=>{
       if(youtubeHash !== undefined)
-        fetch(base+youtubeHash).then((body)=>body.json()).then((data)=>{
-          youtubeprogress = (data.offset / data.length) * 100
-          $("#youtubename").text(data.fpath)
+        console.log(youtubeHashURI+youtubeHash)
+        fetch(youtubeHashURI+youtubeHash).then((body)=>body.json()).then((data)=>{
+          youtubeprogress = (data.result.offset / data.result.length) * 100
+          $("#youtubename").text(data.result.fpath)
           $("#youtubepercentage").text(youtubeprogress)
           $("#youtubeprogress").attr("value", youtubeprogress)
           if(data.completed)
@@ -27,9 +34,9 @@ window.onload = function(){
   function tars(){
     var interval = setInterval(()=>{
       if(uniHash !== undefined)
-        fetch(base+uniHash).then((body)=>body.json()).then((data)=>{
-          uniprogress = (data.offset / data.length) * 100
-          $("#uniname").text(data.fpath)
+        fetch(uniHashURI+uniHash).then((body)=>body.json()).then((data)=>{
+          uniprogress = (data.result.offset / data.result.length) * 100
+          $("#uniname").text(data.result.fpath)
           $("#unipercentage").text(uniprogress)
           $("#uniprogress").attr("value", uniprogress)
           if(data.completed)
@@ -59,7 +66,7 @@ window.onload = function(){
       return body.json()
     }).then((json)=>{
       if(json.hash !== undefined){
-        $("#youtubeHash").text(json.hash)
+        $("#youtubeHash").attr("href", youtubeHashURI+json.hash)
         youtubeHash = json.hash
         encase()
       }

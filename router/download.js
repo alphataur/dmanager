@@ -64,10 +64,28 @@ downloadRouter.post("/youtube/add", async (req, res)=>{
 
 downloadRouter.get("/uni/:hash", async (req, res)=>{
   let hash = req.params.hash
-  let result = await uniModels.find({hash: hash}).catch((err)=>res.json(errorify(err)))
-  res.json(payloadify(result))
+  let result = await uniModels.findOne({hash: hash}).catch((err)=>res.json(errorify(err)))
+  debugger;
+  if(result !== [])
+    res.json(payloadify(result))
+  else
+    res.json(errorify("hash not found"))
 })
 
+downloadRouter.get("/info/:hash", async (req, res)=>{
+  let results = await uniModels.findOne({hash: req.params.hash}).catch((err)=>res.json(errorify(err)))
+  results = results.toObject()
+  results["size"] = results["length"]
+  delete results["length"]
+  delete results["__v"]
+  delete results["_id"]
+  if(results === [])
+    res.json(errorify("hash not found"))
+  else{
+    debugger;
+    res.render("info", {results: results})
+  }
+})
 
 module.exports = {
   downloadRouter

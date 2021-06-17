@@ -17,6 +17,10 @@ app.get("/ping", (req, res)=>{
   res.json({success: true, message: "pong"})
 })
 
+app.get("/", (req, res)=>{
+  res.render("index")
+})
+
 app.listen(3000, ()=>{
   console.log("server spinning at 3000")
 })

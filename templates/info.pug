@@ -1,0 +1,14 @@
+include root.pug
+body
+  .boxie
+    table(class="u-full-width")
+      thead
+        tr
+          each val, key in results
+            th= key
+      tbody
+        tr
+          each val, key in results
+            td= val
+    -var progress = (results.offset / results.size) * 100
+    progress(id="progress" value=progress max="100")

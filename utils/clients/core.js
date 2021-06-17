@@ -394,7 +394,6 @@ async function main(){
   let a = new torrent({torrent: "5e5e3d7bdb09f57780925992cf39dee47cfd7b82", fpath: "/home/iamfiasco/Desktop"})
   a.init(console.log).catch(console.log)
 }
-main()
 
 module.exports = {
   base: base,
