@@ -7,7 +7,7 @@ window.onload = function(){
   var youtubeURI = base+"youtube/add"
   var uniURI = base + "uni/add"
 
-  var youtubeHashURI = base + "uni/"
+  var youtubeHashURI = base + "info/"
   var uniHashURI = base + "uni/"
 
   var youtubeHash = undefined

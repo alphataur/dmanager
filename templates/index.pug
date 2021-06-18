@@ -1,37 +1,40 @@
 include root.pug
 body
-  .container
-    .row
-      h3 Enter links here
-      form
-        .row
-          .six.columns
-            label(for="uri")
-              Enter URI
-            input(class="u-full-width" type="text" placeholder="enter url here" id="unilink")
-            button.primary(id="uni") Download
-          .six.columns
-            label(for="fpath")
-              Enter fpath
-            input(class="u-full-width" type="text" placeholder="enter fpath here" id="unipath")
-      #uniname
-      #unipercentage
-      .row
-        progress(id="uniprogess" value="0" max="100")
-    .row
-      h3 Enter youtube links here
+  .boxie
+    h1 Dmanager.js
+  .boxie
+    h4 Enter links
+  .boxie
+    div
+      label(for="uri")
+        Enter URI
+      input#unilink(class="u-full-width" type="text" placeholder="Enter URL here")
+  .boxie
+    div
+      label(for="fpath")
+        Enter file path
+      input#unipath(class="u-full-width" type="text" placeholder="Enter file path")
+  .boxie
+    button.primary#uni Download
+  .boxie
+    #uniname
+  .boxie
+    #unipercentage
+  .boxie
+    progress#uniprogress(value="0" max="100")
+  hr
+  .boxie
+    h4 Enter youtube links here
+  .boxie
     form
-      .row
-        .six.columns
-          label(for="uri")
-            Enter URI
-          input(class="u-full-width" type="text" placeholder="enter url here" id="youtubelink")
-          button.primary(id="youtube") Download
-      .row
-        .six.columns
-          a#youtubeHash Enter
-      .row
-        progress(id="youtubeprogress" value="0" max="100")
-      #youtubename
-      #youtubepercentage
+      div
+        label(for="uri")
+          Enter URI
+        input#youtubelink("u-full-width" type="text" placeholder="Enter URL here")
+  .boxie
+    button.primary#youtube Download
+  .boxie
+    progress(id="youtubeprogress" value="0" max="100")
+  .boxie
+    a#youtubeHash More Info
 

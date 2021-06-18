@@ -1,8 +1,10 @@
 include root.pug
 body
-  h1 Dmanager
+  script.
+    setTimeout(()=>location.reload(), 5 * 1000)
   .boxie
-
+    h1 Dmanager.js
+  .boxie
     table(class="u-full-width")
       thead
         tr
@@ -12,5 +14,8 @@ body
         tr
           each val, key in results
             td= val
-    -var progress = (results.offset / results.size) * 100
+    -var progress = Math.round((results.offset / results.size) * 100)
+  .boxie
     progress(id="progress" value=progress max="100")
+  .boxie
+    h2= progress + "%"

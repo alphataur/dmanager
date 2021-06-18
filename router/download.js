@@ -95,7 +95,9 @@ downloadRouter.get("/info/list", async (req, res)=>{
 downloadRouter.get("/info/:hash", async (req, res)=>{
   let results = await uniModels.findOne({hash: req.params.hash}).catch((err)=>res.json(errorify(err)))
   results = results.toObject()
-  results["size"] = results["length"]
+  results["size"] = (results["length"] / (1024 * 1024)).toFixed(2)
+  results["speed"] = (results["speed"] / 1024).toFixed(2)
+  results["offset"] = (results["offset"] / (1024 * 1024)).toFixed(2)
   delete results["length"]
   delete results["__v"]
   delete results["_id"]

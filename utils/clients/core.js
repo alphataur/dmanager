@@ -124,13 +124,16 @@ class base extends events{
       this.model = this.collection.getDownloadEntryModel()
       this.reader.pipe(this.writer)
       this.reader.on("error", this.handleError)
+      let count = 0
       this.reader.on("data", async (chunk)=>{
         this.emit("progress", this.metaCompact())
         if(this.speedometer === undefined)
           this.speedometer = speedometer()
         this.speed = this.speedometer(chunk.length)
         this.offset += chunk.byteLength
-        this.dbSave()
+        count += 1
+        if(count % 10 === 0)
+          this.dbSave()
       })
       this.reader.on("end", ()=>{
         //wait for a moment then cleanup
