@@ -219,23 +219,30 @@ class youtube extends events{
     this.reject(err)
   }
   init(){
-    return new Promise(async (resolve, reject)=>{
-      this.resolve = resolve
-      this.reject = reject
-      this.videoStream.on("info", (a, b)=>{
-        this.length += Number(b.contentLength)
-        this.fpath = path.join(process.env.BASE, a.videoDetails.title+".mkv")
-      })
-      this.audioStream.on("info", (a, b)=>{
-        this.length += Number(b.contentLength)
-      })
-      this.audioStream.pipe(this.audioWriteStream)
-      this.videoStream.pipe(this.videoWriteStream)
-      this.audioStream.on("data", (chunk) =>{this.handleUpdate(chunk)})
-                      .on("error", (e)=>{this.handleError(e)})
-      this.videoStream.on("data", (chunk) => {this.handleUpdate(chunk)})
-                      .on("end", (e)=>{this.handleEnd(e)})
-                      .on("error", (e)=>{this.handleError(e)})
+    return new Promise((resolve, reject)=>{
+      try{
+        this.resolve = resolve
+        this.reject = reject
+        this.videoStream.on("info", (a, b)=>{
+          this.length += Number(b.contentLength)
+          this.fpath = path.join(process.env.BASE, a.videoDetails.title+".mkv")
+        })
+        this.audioStream.on("info", (a, b)=>{
+          this.length += Number(b.contentLength)
+        })
+        console.log("starting YT download")
+        this.audioStream.pipe(this.audioWriteStream)
+        this.videoStream.pipe(this.videoWriteStream)
+        this.audioStream.on("data", (chunk) =>{this.handleUpdate(chunk)})
+                        .on("error", (e)=>{this.handleError(e)})
+        this.videoStream.on("data", (chunk) => {this.handleUpdate(chunk)})
+                        .on("end", (e)=>{this.handleEnd(e)})
+                        .on("error", (e)=>{this.handleError(e)})
+      }
+      catch(e){
+        this.emit("error", this.metaCompact())
+        this.reject(e)
+      }
     })
   }
   async dbSave(){
