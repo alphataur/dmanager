@@ -11,10 +11,6 @@ const speedometer = require("speedometer")
 const crypto = require("crypto")
 const events = require("events")
 const {Entry} = require("../store")
-//const collections = require("../collections")
-//const cp = require("child_process")
-//const ytdl = require("ytdl-core")
-//const webtorrent = require("webtorrent")
 
 //do something about this patch(centralized loc)
 if(Array.prototype.last === undefined){
@@ -30,7 +26,7 @@ class Errors{
     static DPROT_UNSUP = "download protocol not supported"
 }
 
-class base extends events{
+class SingleClient extends events{
     constructor({uri, fpath, offset, length}){
       super()
       this.uri = uri
@@ -39,6 +35,9 @@ class base extends events{
       this.length = length
       this.setHash()
       this.completed = false
+      this.defaultHeaders = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'
+      }
     }
     pause(){
       this.reader.destroy()
@@ -60,13 +59,16 @@ class base extends events{
           return false
       }
     }
-    connect(){
+    connect(start){
+      if(start !== undefined){
+        this.defaultHeaders['Range'] = `bytes=${start}-`
+      }
       this.adapter = this.getAdapter()
       return new Promise((resolve, reject)=>{
         if(!this.adapter)
           return reject(Errors.DPROT_UNSUP)
         else{
-          this.adapter.get(this.uri, (res)=>{
+          this.adapter.get(this.uri, {headers: this.defaultHeaders}, (res)=>{
             return resolve(res)
           })
         }
@@ -89,27 +91,29 @@ class base extends events{
       return this.reject(err)
     }
     setProgress(){
-      this.offset = 0
       this.length = Number(this.reader.headers["content-length"])
     }
     getStatePath(){
       return path.join(process.env.STATE_PATH, this.hash)
     }
     async dbSave(){
-      //let data = await this.model.findOne({hash: this.hash}).catch(this.handleError)
-      //if(data === null){
-      //  let temp = new this.model(this.metaCompact())
-      //  await temp.save().catch((err)=>{this.handleError(err)})
-      //}
-      //else{
-      //  let done = await this.model.findOneAndUpdate({hash: this.hash}, {$set: this.metaCompact()}).catch(this.handleError)
-      //}
-      let data = this.metaCompact()
-      await this.state.write(data)
+      if(!await this.state.write(data))
+        console.log("failed to write state")
       //await fs.writeFile(this.getStatePath(), JSON.stringify(data, null, 4)).catch((err)=>{this.handleError(err)})
     }
     async init(){
       return new Promise(async (resolve, reject)=>{
+
+        this.resolve = resolve
+        this.reject = reject
+        if(this.uri === undefined)
+          return reject(Errors.URI_UNDEF)
+        if(this.fpath === undefined)
+          return reject(Errors.FPATH_UNDEF)
+
+        this.fpath = path.join(process.env.DPATH, this.fpath)
+        console.log(`downloading content to ${this.fpath}`)
+        this.reader = await this.connect(this.offset)
         this.state = new Entry(this.hash)
         if(!await this.state.isNew()){
           //loading state
@@ -122,19 +126,15 @@ class base extends events{
           this.speed = this.state.meta.speed
           this.hash = this.state.meta.hash
           this.completed = this.state.meta.completed
+          this.mode = "old"
+          this.setProgress(this.offset)
+          console.log("old mode")
         }
-        this.resolve = resolve
-        this.reject = reject
-        if(this.uri === undefined)
-          return reject(Errors.URI_UNDEF)
-        if(this.fpath === undefined)
-          return reject(Errors.FPATH_UNDEF)
-
-        this.fpath = path.join(process.env.DPATH, this.fpath)
-        console.log(`downloading content to ${this.fpath}`)
-        this.reader = await this.connect()
-        if(this.length === undefined || this.offset === undefined)
+        else{
+          console.log("new mode")
           this.setProgress()
+          this.offset = 0
+        }
         if(this.mode === undefined || this.mode === "new")
           this.writer = ofs.createWriteStream(this.fpath)
         else
@@ -166,7 +166,9 @@ class base extends events{
       })
     }
 }
-
-a = new base({uri: "https://box5.highschooldxd.xyz/Naruto%5B1-220%5D/Naruto%20009%20-%20Kakashi%20the%20Sharingan%20User.mkv", fpath: "nonne.mkv"})
-a.on("progress", console.log)
-a.init().then(console.log)
+module.exports = {
+  SingleClient
+}
+//a = new base({uri: "https://box5.highschooldxd.xyz/Naruto%5B1-220%5D/Naruto%20009%20-%20Kakashi%20the%20Sharingan%20User.mkv", fpath: "nonne.mkv"})
+//a.on("progress", console.log)
+//a.init().then(console.log)

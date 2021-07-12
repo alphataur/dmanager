@@ -16,10 +16,12 @@ class Entry{
   }
   async isNew(){
     try{
-      await fs.access(this.fpath, ofs.constants.F_OK | ofs.constants.F_OK | ofs.constants.R_OK)
+      console.log(this.fpath, "is the state")
+      await fsp.access(this.fpath, fs.constants.F_OK | fs.constants.F_OK | fs.constants.R_OK)
       return false
     }
     catch(e){
+      console.log("error as", e)
       return true
     }
   }
