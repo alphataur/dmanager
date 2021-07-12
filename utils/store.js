@@ -12,8 +12,18 @@ class Entry{
   constructor(hash){
     this.hash = hash
     this.fpath = path.join(process.env.SPATH, this.hash)
+    this.meta = {}
   }
-  async stateSync(){
+  async isNew(){
+    try{
+      await fs.access(this.fpath, ofs.constants.F_OK | ofs.constants.F_OK | ofs.constants.R_OK)
+      return false
+    }
+    catch(e){
+      return true
+    }
+  }
+  async read(){
     try{
       let data = await fsp.readFile(this.fpath)
       this.meta = JSON.parse(data)
