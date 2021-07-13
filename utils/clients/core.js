@@ -10,7 +10,7 @@ const url = require("url")
 const speedometer = require("speedometer")
 const crypto = require("crypto")
 const events = require("events")
-const collections = require("../collections")
+//const collections = require("../collections")
 const cp = require("child_process")
 const ytdl = require("ytdl-core")
 const webtorrent = require("webtorrent")
@@ -90,20 +90,41 @@ class base extends events{
     this.offset = 0
     this.length = Number(this.reader.headers["content-length"])
   }
-  async dbSave(){
-    let data = await this.model.findOne({hash: this.hash}).catch(this.handleError)
-    if(data === null){
-      let temp = new this.model(this.metaCompact())
-      await temp.save().catch((err)=>{this.handleError(err)})
-    }
-    else{
-      let done = await this.model.findOneAndUpdate({hash: this.hash}, {$set: this.metaCompact()}).catch(this.handleError)
-    }
-
+  getStatePath(){
+    return path.join(process.env.STATE_PATH, this.hash)
   }
-
+  async dbSave(){
+    //let data = await this.model.findOne({hash: this.hash}).catch(this.handleError)
+    //if(data === null){
+    //  let temp = new this.model(this.metaCompact())
+    //  await temp.save().catch((err)=>{this.handleError(err)})
+    //}
+    //else{
+    //  let done = await this.model.findOneAndUpdate({hash: this.hash}, {$set: this.metaCompact()}).catch(this.handleError)
+    //}
+    let data = this.metaCompact()
+    await fs.writeFile(this.getStatePath(), JSON.stringify(data, null, 4)).catch((err)=>{this.handleError(err)})
+  }
+  async loadState(){
+    try{
+      await fs.access(this.getStatePath(), ofs.constants.F_OK | ofs.constants.F_OK | ofs.constants.R_OK)
+      let data = await fs.readFile(this.getStatePath()).catch((err)=>this.handleError(err))
+      this.uri = data.uri
+      this.fpath = data.fpath
+      this.offset = data.offset
+      this.length = data.length
+      this.speed = data.speed
+      this.hash = data.hash
+      this.completed = data.completed
+    }
+    catch(e){
+      console.log("new entry")
+    }
+  }
   async init(){
     return new Promise(async (resolve, reject)=>{
+      this.loadState()
+      this.dbSave()
       this.resolve = resolve
       this.reject = reject
       if(this.uri === undefined)
@@ -120,8 +141,8 @@ class base extends events{
         this.writer = ofs.createWriteStream(this.fpath, {start: this.offset, flags: "r+"})
       
       //TODO: shift logic to download method for simplicity
-      this.collection = new collections.uniEntryCollection({})
-      this.model = this.collection.getDownloadEntryModel()
+      //this.collection = new collections.uniEntryCollection({})
+      //this.model = this.collection.getDownloadEntryModel()
       this.reader.pipe(this.writer)
       this.reader.on("error", this.handleError)
       let count = 0
@@ -164,7 +185,7 @@ class youtube extends events{
     this.videoWriteStream = ofs.createWriteStream(this.videoWritePath)
     this.completed = false
     this.collection = new collections.uniEntryCollection({})
-    this.model = this.collection.getDownloadEntryModel()
+    //this.model = this.collection.getDownloadEntryModel()
   }
   pause(){
     this.audioStream.destroy()
