@@ -25,6 +25,17 @@ class Entry{
       return true
     }
   }
+  readSync(){
+    try{
+      let data = fs.readFileSync(this.fpath)
+      this.meta = JSON.parse(data)
+      return true
+    }
+    catch(e){
+      console.log("failed to read from store")
+      return false
+    }
+  }
   async read(){
     try{
       let data = await fsp.readFile(this.fpath)
@@ -63,7 +74,7 @@ class Store{
     let entries = await fsp.readdir(process.env.SPATH)
     for(let entry of entries){
       this.entries[entry] = new Entry(entry)
-      await this.entries[entry].stateSync()
+      await this.entries[entry].read()
     }
   }
 }
