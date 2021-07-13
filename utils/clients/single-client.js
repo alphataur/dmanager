@@ -97,6 +97,7 @@ class SingleClient extends events{
       return path.join(process.env.STATE_PATH, this.hash)
     }
     async dbSave(){
+      let data = this.metaCompact()
       if(!await this.state.write(data))
         console.log("failed to write state")
       //await fs.writeFile(this.getStatePath(), JSON.stringify(data, null, 4)).catch((err)=>{this.handleError(err)})

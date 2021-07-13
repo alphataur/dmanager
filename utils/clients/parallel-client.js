@@ -1,86 +1,73 @@
-require("dotenv").config()
-const https = require("https")
-const http = require("http")
-const fs = require("fs")
-const fsp = require("fs").promises
-const path = require("path")
-const url = require("url") //TODO: this API is deprecated please replace later
-const crypto = require("crypto")
+const {SingleClient} = require("./single-client")
+const {createHash} = require("crypto")
 const {Entry} = require("../store")
+
+class AdvancedClient extends SingleClient{
+  constructor({uri, fpath}){
+    super({uri, fpath})
+  }
+  dbSave(){
+    let data = this.metaCompact()
+    console.log("inside advanced", data)
+  }
+}
 
 class ParallelClient{
   constructor({uris, fpaths, maxConns}){
     this.uris = uris
     this.fpaths = fpaths
     this.maxConns = maxConns || 4
-    this.n = this.uris.length
-    // Sanity checks
-    if(this.uri.length !== this.fpath.length)
-      throw new Error("fpaths not properly specified")
+    if(this.uris.length === this.fpaths.length){
+      this.states = new Array(this.uris.length)
+      this.hash = this.getHash()
+      this.state = new Entry(this.hash)
+      this.handles = this.uris.map((item, idx, arr) => {
+        return new AdvancedClient({uri: item, fpath: this.fpaths[idx]})
+      })
+    }
     else{
-      this.fpaths = this.fpaths.map(fpath => path.join(process.env.SPATH, fpath))
-      this.lengths = new Array(this.n)
-      this.offsets = new Array(this.n).fill(0)
-      this.speeds = new Array(this.n).fill(0)
-      this.completed = new Array(this.n).fill(false)
-      this.setHash() //=> sets this.hashes
-      this.state = new Entry(this._hash)
-    }
-    this.adapters = this.uris.map(uri => {
-      this.getAdapter(uri)
-    })
-  }
-  getAdapter(uri){
-    switch(url.parse(uri).protocol){
-      case "https:":
-        return https
-      case "http:":
-        return http
-      default:
-        return false
+      throw new Error("invalid URIs/Fpaths")
     }
   }
-  setHash(){
-    //sets hash by exploring this.uris
-    this._hasher = crypto.createHash("md5")
-    this.hashes = this.uri.map(uri => {
-      let hasher = crypto.createHash("md5")
-      hasher.update(uri)
-      this._hasher.update(uri)
-      return hasher.digest("hex")
-    })
-    this._hash = this._hasher.digest("hex")
-  }
-  connect(){
-    return new Promise((resolve, reject)=>{
-      Promise.all(this.uris.map((uri, idx, arr) => {
-        return new Promise((resolve, reject) => {
-          this.adapters[idx].get(uri, (res) => {
-            return resolve(res)
-          })
+  init(){
+    return new Promise((resolve, reject) => {
+
+      Promise.all(this.handles.splice(0, this.maxConns).map((handle, idx, arr) => {
+        handle.on("progress", (data)=>{
+          this.states[idx] = data
+          this.dbSave()
         })
+        return handle.init()
       })).then(resolve).catch(reject)
+
     })
-  }
-  async init(){
-    let readers = await this.connect()
-    debugger;
   }
   metaCompact(){
-    return {
-      uris: this.uris,
-      fpaths: this.fpaths,
-      offsets: this.offsets,
-      lengths: this.lengths,
-      completed: this.completed,
-      speeds: this.speeds,
-      hashes: this.hashes
+    return {files: this.states}
+  }
+  getHash(){
+    if(this._hasher === undefined){
+      this._hasher = createHash("md5")
+      this.uris.forEach(uri => this._hasher.update(uri))
+      return this._hasher.digest("hex")
     }
+    return this._hasher.digest("hex")
   }
   async dbSave(){
     let data = this.metaCompact()
-    if(!await this.state.write(JSON.stringify(data, null, 4)))
+    if(!await this.state.write(data))
       console.log("failed to write to store")
   }
 }
 
+
+module.exports = {
+  ParallelClient
+}
+
+//let handle = new ParallelClient({uris: ["https://box5.highschooldxd.xyz/Naruto%5B1-220%5D/Naruto%20001%20-%20%20Enter,%20Naruto%20Uzamaki.mkv", "https://box5.highschooldxd.xyz/Naruto%5B1-220%5D/Naruto%20002%20-%20%20I%20Am%20Konohamaru!.mkv"], fpaths: ["nu_uno.mkv", "nu_dos.mkv"]})
+//
+//handle.init().then(console.log).catch(console.log)
+//
+//let handle = new AdvancedClient({uri: "https://box5.highschooldxd.xyz/Naruto%5B1-220%5D/Naruto%20007%20-%20%20The%20Assassin%20of%20the%20Mist!.mkv", fpath: "dos.mkv"})
+//handle.init().then(console.log)
