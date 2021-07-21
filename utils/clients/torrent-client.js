@@ -8,7 +8,7 @@ const path = require("path")
 class TorrentClient{
 
   constructor({torrent}){
-    this.client = new webtorrent({maxConns: 10})
+    this.client = new webtorrent({maxConns: 20})
     this.torrentIn = torrent
   }
   metaCompact(){
@@ -30,7 +30,8 @@ class TorrentClient{
       speed: this.torrent.downloadSpeed,
       peers: this.torrent.numPeers,
       torrent: this.torrentIn,
-      ETA: this.torrent.timeRemaining / (1000*60)
+      ETA: this.torrent.timeRemaining / (1000*60),
+      mode: "torrent"
     }
   }
   close(){

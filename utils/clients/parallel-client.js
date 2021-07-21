@@ -43,7 +43,7 @@ class ParallelClient{
     })
   }
   metaCompact(){
-    return {files: this.states}
+    return {files: this.states, mode: "parallel"}
   }
   getHash(){
     if(this._hasher === undefined){
