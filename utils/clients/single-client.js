@@ -82,7 +82,8 @@ class SingleClient extends events{
         length: this.length,
         speed: this.speed,
         hash: this.hash,
-        completed: this.completed
+        completed: this.completed,
+        mode: "single"
       }
     }
     handleError(err){

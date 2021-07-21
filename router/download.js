@@ -1,10 +1,15 @@
 const express = require("express")
-const collections = require("../utils/collections")
-const clients = require("../utils/clients/core")
+const clients = require("../utils/clients/index")
+const {Store, Entry} = require("../utils/store")
+//const clients = require("../utils/clients/core")
 const downloadRouter = express.Router()
-
-const uniCollections = new collections.uniEntryCollection({})
-const uniModels = uniCollections.getDownloadEntryModel()
+let store;
+try{
+  store = new Store()
+}
+catch(e){
+  console.log("something is wrong here")
+}
 
 
 
@@ -31,17 +36,15 @@ function payloadify(payload){
 
 
 downloadRouter.get("/uni/list", async (req, res)=>{
-  let payload = await uniModels.find({}).catch((err)=>{
-    res.json(errorify(err))
-  })
-  payload = payload.map((e)=>{
-    let temp = e.toObject()
-    temp["size"] = temp["length"]
-    delete temp["length"]
-    delete temp["__v"]
-    delete temp["_id"]
-    return temp
-  })
+  payload = store.meta
+  //payload = payload.map((e)=>{
+  //  let temp = e.toObject()
+  //  temp["size"] = temp["length"]
+  //  delete temp["length"]
+  //  delete temp["__v"]
+  //  delete temp["_id"]
+  //  return temp
+  //})
   res.json({results: payload})
 })
 
@@ -50,7 +53,7 @@ downloadRouter.post("/uni/add", async (req, res)=>{
   let fpath = req.body.fpath
   if(fpath === undefined)
     fpath = uri.split("/").last()
-  let handle = new clients.base({uri, fpath})
+  let handle = new clients.SingleClient({uri, fpath})
   handle.init().catch(err => res.json(errorify(err)))
   setTimeout(()=>{
     res.json(hashify(handle.hash))
@@ -60,7 +63,7 @@ downloadRouter.post("/uni/add", async (req, res)=>{
 downloadRouter.post("/youtube/add", async (req, res)=>{
   let uri = req.body.uri
   if(uri.includes("youtube") || uri.includes("youtu.be")){
-    let handle = new clients.youtube({uri})
+    let handle = new clients.YoutubeClient({uri})
     handle.init().catch(err=>res.json(errorify(err)))
     setTimeout(()=>{
       res.json(hashify(handle.hash))
@@ -79,6 +82,7 @@ downloadRouter.get("/uni/:hash", async (req, res)=>{
   else
     res.json(errorify("hash not found"))
 })
+
 downloadRouter.get("/info/list", async (req, res)=>{
   let payload = await uniModels.find({}).catch((err)=>res.json(errorify(err)))
   debugger;

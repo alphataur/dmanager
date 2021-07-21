@@ -111,7 +111,8 @@ class YoutubeClient extends events{
       speed: this.speed || 0,
       completed: this.completed,
       offsetAudio: this.offsetAudio,
-      offsetVideo: this.offsetVideo
+      offsetVideo: this.offsetVideo,
+      mode: "youtube"
     }
   }
   getHash(){
