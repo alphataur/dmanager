@@ -1,4 +1,5 @@
 require("dotenv").config()
+const https = require("https") //FIXME: use  base client
 const ytdl = require("ytdl-core")
 const {Entry} = require("../store")
 const cp = require("child_process")
@@ -8,56 +9,6 @@ const events = require("events")
 const crypto = require("crypto")
 const path = require("path")
 const speedometer = require("speedometer")
-//const {ParallelClient} = require("./parallel-client")
-//
-//class YoutubeClient{
-//  constructor({uri, quality}){
-//    this.uri = uri
-//    this.quality = quality || "1080p"
-//    if(this.uri === undefined)
-//      throw new Error("invalid uri")
-//  }
-//
-//
-//
-//
-//
-//
-//
-//
-//  selectAudio(formats){
-//    let selections = formats.filter(e => {return e.hasAudio && !e.hasVideo})
-//    let best = 0
-//    for(let i = 1; i < selections.length; i++){
-//      if(selections[i] > selections[best])
-//        best = i
-//    }
-//    return formats[best]
-//  }
-//  selectVideo(formats){
-//    let selections = formats.filter(e => {return e.qualityLabel === this.quality})
-//    let best = 0
-//    for(let i = 1; i < selections.length; i++){
-//      if((selections[i].bitrate < selections[best].bitrate) && (!selections[i].hasAudio))
-//        best = i
-//    }
-//    return selections[best]
-//  }
-//  async extractLinks(){
-//    let {formats} = await ytdl.getInfo(this.uri)
-//    let videoLink = this.selectVideo(formats)
-//    let audioLink = this.selectAudio(formats)
-//    return [videoLink, audioLink]
-//  }
-//  async init(){
-//    const [videoLink, audioLink] = await this.extractLinks()
-//    let 
-//  }
-//}
-//
-//
-//let handle = new YoutubeClient({uri: "https://www.youtube.com/watch?v=vw3Jg5WdMbY"})
-//handle.init()
 
 if(Array.prototype.last === undefined)
   Array.prototype.last = function(){
@@ -87,20 +38,11 @@ class YoutubeClient extends events{
     this.prepWStreams()
 
   }
-  destroyStreams(){
-    console.log("destroying stream")
-    this.videoStream.destroy()
-    this.audioStream.destroy()
-    this.videoWriteStream.destroy()
-    this.audioWriteStream.destroy()
-  }
   prepRStreams(){
-    console.log("preparing read streams")
     this.videoStream = ytdl(this.uri, {quality: this.videoQuality})//, range: {start: this.offsetVideo, end: INT}})
     this.audioStream = ytdl(this.uri, {quality: this.audioQuality})//, range: {start: this.offsetAudio}})
   }
   prepWStreams(){
-    console.log("preparing write streams")
     this.audioWritePath = path.join(process.env.DPATH, this.hash+"_audio.mkv")
     this.videoWritePath = path.join(process.env.DPATH, this.hash+"_video.mkv")
     this.audioWriteStream = ofs.createWriteStream(this.audioWritePath)//, {start: this.offsetAudio, flags: "r+"})
@@ -158,10 +100,6 @@ class YoutubeClient extends events{
     this.completed = true
     this.dbSave()
     let handle = cp.spawn("ffmpeg", ["-i", this.videoWritePath, "-i", this.audioWritePath, "-c", "copy", this.fpath+".mkv"])
-    handle.on("data", (data) => {
-      console.log("error at ffmpeg")
-      console.log(err)
-    })
     handle.on("close", async (code) =>{
       console.log("removing files")
       await fs.unlink(this.videoWritePath).catch(console.log)
@@ -178,7 +116,10 @@ class YoutubeClient extends events{
     this.reject(err)
   }
   init(){
-    return new Promise((resolve, reject)=>{
+    return new Promise(async (resolve, reject)=>{
+      let [audioStream, videoStream] = this.prepLinks() //await ytdl.getBasicInfo(this.uri)
+      this.audioStream = audioStream
+      this.videoStream = videoStream
       debugger;
       if(this.completed){
         debugger;
@@ -187,24 +128,10 @@ class YoutubeClient extends events{
       try{
         this.resolve = resolve
         this.reject = reject
-        this.ok = false
-        this.clearTimer = setInterval(()=>{
-          if(this.ok){
-            console.log("streams properly loaded clearing timer")
-            clearInterval(this.clearTimer)
-          }
-          else{
-            this.destroyStreams()
-            this.prepRStreams()
-            this.prepWStreams()
-            this.init().then(e => this.resolve(e)).catch(e => this.reject(e))
-          }
-        },15000)
         this.videoStream.on("info", (a, b)=>{
-          this.ok = true
           console.log("video stream info received")
           this.length += Number(b.contentLength)
-          this.fpath = path.join(process.env.DPATH, a.videoDetails.title+".mkv").replace(" ", "_")
+          this.fpath = path.join(process.env.DPATH, a.videoDetails.title+".mkv")
         })
         this.audioStream.on("info", (a, b)=>{
           console.log("audio stream info received")
