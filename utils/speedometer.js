@@ -14,6 +14,10 @@ class Speedomter{
   pause(){
     clearInterval(this.timer)
   }
+  speed(){
+    //return bps
+    return this.tock / this.tick
+  }
 }
 
 module.exports = {
