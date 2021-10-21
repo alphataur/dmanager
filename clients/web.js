@@ -16,6 +16,17 @@ function hashString(str){
   return hasher.digest("hex")
 }
 
+function hashFile(fpath){
+  return new Promise((resolve, reject) => {
+    let rStream = fs.createReadStream(fpath)
+    let hasher = crypto.createHash("md5") //should we move to sha1
+    rStream
+      .on("end", () => resolve({ success: true, error: false, hash: hasher.digest("hex")}))
+      .on("error", (err) => reject({ success: false, error: err }))
+      .pipe(hasher)
+  })
+}
+
 class Speedometer{
   constructor(){
     this.tick = 0
@@ -60,6 +71,22 @@ class Client{
     else
       return fs.createWriteStream(this.fpath, options)
   }
+  meta(){
+    return {
+      url: this.url,
+      hash: this.hash,
+      length: this.length,
+      offset: this.offset,
+      speed: this.smeter.speed(),
+      fpath: this.fpath
+    }
+  }
+  sendSuccess(){
+    return { success: true, error: false }
+  }
+  sendError(err){
+    return { success: false, error: err }
+  }
   download(){
     return new Promise(async (resolve, reject) => {
 
@@ -68,6 +95,7 @@ class Client{
         method: "get",
         responseType: "stream"
       })
+      this.smeter.resume()
       this.length = Number(res.headers["content-length"])
 
       res.data
@@ -82,6 +110,7 @@ class Client{
           .on("data", (chunk) => {
             this.smeter.consume(chunk)
             this.offset += chunk.byteLength
+            console.log(this.meta())
           })
           .pipe(this.getWriteStream())
     })
@@ -94,6 +123,17 @@ async function main(){
     url: "http://kelseymcnair.com/Kel's%20Music/iTunes/iTunes%20Music/Podcasts/Naruto%20Soundtrack/21%20Naruto%20Main%20Theme.mp3"
   })
   console.log(handle.url, handle.fpath)
+  console.log(await handle.download())
 }
 
+
 main()
+
+module.exports = {
+  Client,
+  Speedometer,
+  hashString,
+  hashFile
+}
+
+
