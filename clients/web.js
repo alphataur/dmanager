@@ -3,7 +3,7 @@ const axios = require("axios")
 const path = require("path")
 const crypto = require("crypto")
 const qs = require("querystring")
-
+const { Store } = require("../utils/state/store")
 
 if(Array.prototype.last === undefined){
   Array.prototype.last = function(){
@@ -57,6 +57,7 @@ class Client{
     this.length = 0
     this.offset =-0
     this.smeter = new Speedometer()
+    this.store = new Store()
   }
   setPath(){
     let target = "downloads"
@@ -87,6 +88,11 @@ class Client{
   sendError(err){
     return { success: false, error: err }
   }
+  async saveState(){
+    let meta = this.meta()
+    let hash = meta.hash
+    await this.store.insert(hash, meta)
+  }
   download(){
     return new Promise(async (resolve, reject) => {
 
@@ -107,10 +113,10 @@ class Client{
             this.smeter.pause()
             resolve(this.sendError(err))
           })
-          .on("data", (chunk) => {
+          .on("data", async (chunk) => {
             this.smeter.consume(chunk)
             this.offset += chunk.byteLength
-            console.log(this.meta())
+            await this.saveState()
           })
           .pipe(this.getWriteStream())
     })
@@ -127,7 +133,7 @@ async function main(){
 }
 
 
-main()
+//main()
 
 module.exports = {
   Client,
