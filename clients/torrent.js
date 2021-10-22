@@ -32,7 +32,7 @@ class Client{
       files: this.metaCompact(),
       length: this._torrent.length,
       offset: this._torrent.downloaded,
-      hash: this.hash,
+      hash: this.iHash,
       speed: this._torrent.downloadSpeed,
       peers: this._torrent.numPeers,
       torrent: this._torrentIn,
@@ -46,10 +46,14 @@ class Client{
 }
 
 async function main(){
-  let hash = "C5738F2A9E8568C637B76D65ED2999F38F490D08"
+  let hash = "C5738F2A9E8568C637B76D65ED2999F38F490D08" // info hash of the file
   let handle = new Client({ iHash: hash })
   console.log(await handle.init())
   handle.close()
 }
 
-main()
+
+module.exports = {
+  Client
+}
+
