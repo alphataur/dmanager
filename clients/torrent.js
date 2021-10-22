@@ -1,3 +1,4 @@
+require("dotenv").config()
 const webtorrent = require("webtorrent")
 const { Store } = require("../utils/state/store")
 
@@ -11,7 +12,7 @@ class Client{
   }
   init(){
     return new Promise((resolve, reject)=>{
-      this.client.add(this.iHash, { path: "downloads" }, (torrent) => {
+      this.client.add(this.iHash, { path: process.env.DPATH }, (torrent) => {
         this._torrent = torrent
         this._torrent.on("done", () => resolve({ success: true, error: false, hash: this.iHash}))
         this._torrent.on("error", (err) => reject({success: false, error: err, hash: this.iHash}))
