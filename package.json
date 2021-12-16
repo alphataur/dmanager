@@ -6,9 +6,7 @@
   "author": "Nikhil Surya Mukhi <darksublimethoughts@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.24.0",
-    "express": "^4.17.1",
-    "pug": "^3.0.2",
-    "webtorrent": "^1.5.8"
+    "fastify": "^3.25.0",
+    "fastify-redis": "^4.3.3"
   }
 }
