@@ -1,5 +1,7 @@
-const { fileExists } = require("./f-utils")
+const { fileExists, truncateParts, pipeFile } = require("./f-utils")
 
 module.exports = {
-  fileExists
+  fileExists,
+  truncateParts,
+  pipeFile
 }
